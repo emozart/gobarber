@@ -1,6 +1,6 @@
 import * as Yup from 'yup'
 
-import User from '../models/User'
+import User from '../../database/index'
 
 /**
  * Função para criação de novo usuaŕio
