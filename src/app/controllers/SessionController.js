@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken'
 import * as Yup from 'yup'
 
 import authConfig from '../../config/auth'
-import User from '../../database/index'
+import { User } from '../../database/index'
 
 const store = async (req, res) => {
   const schema = Yup.object().shape({
