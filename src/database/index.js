@@ -3,16 +3,16 @@ import Sequelize from 'sequelize'
 import databaseConfig from '../config/database'
 import UserModel from '../app/models/User'
 import FileModel from '../app/models/File'
+import AppointmentModel from '../app/models/Appointment'
 
 const sequelize = new Sequelize(databaseConfig)
 
-const associate = (modelA, modelB) => {
-  modelA.belongsTo(modelB, { foreignKey: 'avatar_id' })
-}
-
 const User = UserModel(sequelize)
 const File = FileModel(sequelize)
+const Appointment = AppointmentModel(sequelize)
 
-associate(User, File)
+User.belongsTo(File, { foreignKey: 'avatar_id', as: 'avatar' })
+Appointment.belongsTo(User, { foreignKey: 'user_id', as: 'user' })
+Appointment.belongsTo(User, { foreignKey: 'provider_id', as: 'provider' })
 
-export { User, File }
+export { User, File, Appointment }
