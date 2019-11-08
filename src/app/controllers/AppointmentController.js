@@ -1,6 +1,9 @@
 import { Appointment, User, File } from '../../database/index'
-import { startOfHour, parseISO, isBefore } from 'date-fns'
+import { startOfHour, parseISO, isBefore, format, subHours } from 'date-fns'
+import pt from 'date-fns/locale/pt'
 import * as Yup from 'yup'
+import NotificationSchema from '../schemas/Notification'
+import Mail from '../../lib/mail'
 
 const index = async (req, res) => {
   const { page = 1 } = req.query
@@ -36,7 +39,7 @@ const store = async (req, res) => {
   })
 
   if (!schema.isValid(req.body)) {
-    return res.status(400).json({ error: 'Validation fails.'})
+    return res.status(400).json({ error: 'Validation fails.' })
   }
 
   const { provider_id, date } = req.body
@@ -83,10 +86,60 @@ const store = async (req, res) => {
     date
   })
 
+  /**
+   * Notify Appointment provider
+   */
+  const user = await User.findByPk(req.userId)
+  const formattedDate = format(hourStart, "'dia' dd 'de' MMMM', às' H:mm'hs'", {
+    locale: pt
+  })
+  await NotificationSchema.create({
+    content: `Novo agendamento de ${user.name} para ${formattedDate}.`,
+    user: provider_id
+  })
+
+  return res.json(appointment)
+}
+
+const excluir = async (req, res) => {
+  const appointment = await Appointment.findByPk(req.params.id, {
+    include: [
+      {
+        model: User,
+        as: 'provider',
+        attributes: ['name', 'email']
+      }
+    ]
+  })
+
+  if (appointment.user_id !== req.userId) {
+    return res
+      .status(401)
+      .json({ error: 'You do not have permittion to cancel this appointment.' })
+  }
+
+  const cancelLimit = subHours(appointment.date, 2)
+
+  if (isBefore(cancelLimit, new Date())) {
+    return res.status(401).json({
+      error: 'You can only cancel appointments in 2 hours in advance.'
+    })
+  }
+
+  appointment.canceled_at = new Date()
+  await appointment.save()
+
+  await Mail.sendMail({
+    to: `${appointment.provider.name} <${appointment.provider.email}>`,
+    subject: 'Agendamento Cancelado',
+    text: 'Você tem um novo cancelamento.'
+  })
+
   return res.json(appointment)
 }
 
 export default {
   index,
-  store
+  store,
+  excluir
 }
