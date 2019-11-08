@@ -1,6 +1,8 @@
 import { Appointment, User, File } from '../../database/index'
-import { startOfHour, parseISO, isBefore } from 'date-fns'
+import { startOfHour, parseISO, isBefore, format } from 'date-fns'
+import pt from 'date-fns/locale/pt'
 import * as Yup from 'yup'
+import NotificationSchema from '../schemas/Notification'
 
 const index = async (req, res) => {
   const { page = 1 } = req.query
@@ -36,7 +38,7 @@ const store = async (req, res) => {
   })
 
   if (!schema.isValid(req.body)) {
-    return res.status(400).json({ error: 'Validation fails.'})
+    return res.status(400).json({ error: 'Validation fails.' })
   }
 
   const { provider_id, date } = req.body
@@ -81,6 +83,18 @@ const store = async (req, res) => {
     user_id: req.userId,
     provider_id,
     date
+  })
+
+  /**
+   * Notify Appointment provider
+   */
+  const user = await User.findByPk(req.userId)
+  const formattedDate = format(hourStart, "'dia' dd 'de' MMMM', às' H:mm'hs'", {
+    locale: pt
+  })
+  await NotificationSchema.create({
+    content: `Novo agendamento de ${user.name} para ${formattedDate}.`,
+    user: provider_id
   })
 
   return res.json(appointment)
