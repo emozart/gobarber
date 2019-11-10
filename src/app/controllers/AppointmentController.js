@@ -3,7 +3,8 @@ import { startOfHour, parseISO, isBefore, format, subHours } from 'date-fns'
 import pt from 'date-fns/locale/pt'
 import * as Yup from 'yup'
 import NotificationSchema from '../schemas/Notification'
-import Mail from '../../lib/mail'
+
+import Queues from '../../lib/queues'
 
 const index = async (req, res) => {
   const { page = 1 } = req.query
@@ -134,20 +135,7 @@ const excluir = async (req, res) => {
   appointment.canceled_at = new Date()
   await appointment.save()
 
-  Mail.configureTemplates()
-
-  await Mail.sendMail({
-    to: `${appointment.provider.name} <${appointment.provider.email}>`,
-    subject: 'Agendamento Cancelado',
-    template: 'cancellation',
-    context: {
-      provider: appointment.provider.name,
-      user: appointment.user.name,
-      date: format(appointment.date, "'dia' dd 'de' MMMM', às' H:mm'hs'", {
-        locale: pt
-      })
-    }
-  })
+  Queues.CancellationMailQueue.createJob({ appointment }).save()
 
   return res.json(appointment)
 }
