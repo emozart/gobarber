@@ -1,6 +1,10 @@
 import express from 'express'
 import path from 'path'
+import Youch from 'youch'
+import * as Sentry from '@sentry/node'
+import 'express-async-errors'
 import routes from './routes'
+import sentryConfig from './config/sentry'
 
 import './database'
 
@@ -10,8 +14,14 @@ import './database'
 const server = express()
 
 /**
+ * Monitoramento de erros
+ */
+Sentry.init(sentryConfig)
+
+/**
  * Lista de Middlewares
  */
+server.use(Sentry.Handlers.requestHandler())
 server.use(express.json())
 server.use(
   '/files',
@@ -22,5 +32,14 @@ server.use(
  * Rotas da aplicação
  */
 server.use(routes)
+server.use(Sentry.Handlers.errorHandler())
+
+/**
+ * Captura de erros
+ */
+server.use(async (err, req, res, next) => {
+  const errors = await new Youch(err, req).toJSON()
+  return res.status(500).json(errors)
+})
 
 export default server
