@@ -4,10 +4,11 @@ import {
   setSeconds,
   setMinutes,
   setHours,
-  format
+  format,
+  isAfter
 } from 'date-fns'
 import { Op } from 'sequelize'
-import Appointment from '../models/Appointment'
+import { Appointment } from '../../database/index'
 
 const index = async (req, res) => {
   const { date } = req.query
@@ -18,7 +19,7 @@ const index = async (req, res) => {
 
   const searchDate = Number(date)
 
-  const appointments = Appointment.findAll({
+  const appointments = await Appointment.findAll({
     where: {
       provider_id: req.params.providerId,
       canceled_at: null,
@@ -48,7 +49,10 @@ const index = async (req, res) => {
     const value = setSeconds(setMinutes(setHours(searchDate, hour), minute), 0)
     return {
       time,
-      value: format(value, "yyyy-MM-dd'T'HH:mm:ssxxx")
+      value: format(value, "yyyy-MM-dd'T'HH:mm:ssxxx"),
+      available:
+        isAfter(value, new Date()) &&
+        !appointments.find(a => format(a.date, 'HH:mm') === time)
     }
   })
   return res.json(available)
