@@ -6,7 +6,7 @@ import UserModel from '../app/models/User'
 import FileModel from '../app/models/File'
 import AppointmentModel from '../app/models/Appointment'
 
-const mongoConnection = mongoose.connect('mongodb://localhost:27017/gobarber', {
+const mongoConnection = mongoose.connect(process.env.MONGO_URL, {
   useNewUrlParser: true,
   useFindAndModify: true
 })

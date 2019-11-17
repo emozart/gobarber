@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import Queues from './lib/queues'
 import CancellationMail from './app/jobs/CancellationMail'
 
